@@ -1,0 +1,31 @@
+name: macOS
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  native-smoke:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s Tests -v
+      - run: sh scripts/test_shared.sh
+      - run: swift build -c release
+      - name: Sign host and run a Windows ARM64 PE
+        shell: bash
+        run: |
+          set -eu
+          test "$(uname -m)" = arm64
+          app="$RUNNER_TEMP/MetalBridge.app"
+          sh scripts/package_app.sh "$app"
+          python3 Tests/fixtures.py "$RUNNER_TEMP/answer.exe"
+          host="$app/Contents/MacOS/MetalBridge"
+          "$host" inspect "$RUNNER_TEMP/answer.exe"
+          rc=0
+          "$host" run --backend native-inproc "$RUNNER_TEMP/answer.exe" || rc=$?
+          test "$rc" -eq 42
+          python3 Tests/fixtures.py --tls "$RUNNER_TEMP/tls.exe"
+          rc=0
+          "$host" run --backend native-inproc "$RUNNER_TEMP/tls.exe" || rc=$?
+          test "$rc" -eq 42
+          wrapper=$("$host" bundle "$RUNNER_TEMP/answer.exe")
+          codesign --verify --deep --strict "$wrapper"

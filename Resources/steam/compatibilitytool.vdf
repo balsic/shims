@@ -1,0 +1,13 @@
+"compatibilitytools"
+{
+    "compat_tools"
+    {
+        "metalbridge"
+        {
+            "install_path" "."
+            "display_name" "Metal (Apple Silicon)"
+            "from_oslist" "windows"
+            "to_oslist" "macos"
+        }
+    }
+}
